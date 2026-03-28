@@ -40,6 +40,7 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.jetbrains.annotations.NotNull;
@@ -159,15 +160,8 @@ public class PlayerListener extends Module implements LifeCycle {
             // Join events
             executeActions(player, joinActions);
 
-            if (saveFlyState && playersSection != null && playersSection.contains(player.getUniqueId().toString())) {
-                boolean hasFly = playersSection.getBoolean(player.getUniqueId() + ".fly");
-
-                player.setAllowFlight(hasFly);
-                player.setFlying(hasFly);
-            } else if (forceJoinFly && player.hasPermission(Permissions.COMMAND_FLIGHT.getPermission())) {
-                player.setAllowFlight(true);
-                player.setFlying(true);
-            }
+            applyJoinFlightState(player);
+            syncSpeedState(player);
 
             // Firework
             if (fireworkEnabled) {
@@ -207,8 +201,7 @@ public class PlayerListener extends Module implements LifeCycle {
             player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
 
             if (player.hasPermission(Permissions.COMMAND_FLIGHT.getPermission())) {
-                player.setAllowFlight(false);
-                player.setFlying(false);
+                disableFlight(player);
             }
 
             return;
@@ -216,14 +209,8 @@ public class PlayerListener extends Module implements LifeCycle {
 
         if (player == null || !player.isOnline()) return;
 
-        if (saveFlyState && playersSection != null && playersSection.contains(player.getUniqueId().toString())) {
-            boolean hasFly = playersSection.getBoolean(player.getUniqueId() + ".fly");
-            player.setAllowFlight(hasFly);
-            player.setFlying(hasFly);
-        } else if (forceJoinFly && player.hasPermission(Permissions.COMMAND_FLIGHT.getPermission())) {
-            player.setAllowFlight(true);
-            player.setFlying(true);
-        }
+        applyConfiguredFlightState(player);
+        syncSpeedState(player);
     }
 
     @EventHandler
@@ -243,6 +230,11 @@ public class PlayerListener extends Module implements LifeCycle {
 
         if (event.getNewGameMode() == GameMode.ADVENTURE || event.getNewGameMode() == GameMode.SURVIVAL) {
             Bukkit.getScheduler().runTaskLater(this.getPlugin(), () -> {
+                if (isFightModeBlockingFlight(player)) {
+                    disableFlight(player);
+                    return;
+                }
+
                 player.setAllowFlight(currentAllowFlight);
                 player.setFlying(isFlying);
             }, 1L);
@@ -255,14 +247,19 @@ public class PlayerListener extends Module implements LifeCycle {
 
         if (player == null || !player.isOnline() || inDisabledWorld(player.getLocation())) return;
 
-        if (saveFlyState && playersSection != null && playersSection.contains(player.getUniqueId().toString())) {
-            boolean hasFly = playersSection.getBoolean(player.getUniqueId() + ".fly");
-            player.setAllowFlight(hasFly);
-            player.setFlying(hasFly);
-        } else if (forceJoinFly && player.hasPermission(Permissions.COMMAND_FLIGHT.getPermission())) {
-            player.setAllowFlight(true);
-            player.setFlying(true);
-        }
+        applyConfiguredFlightState(player);
+        syncSpeedState(player);
+    }
+
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+
+        Bukkit.getScheduler().runTask(getPlugin(), () -> {
+            if (!player.isOnline()) return;
+
+            syncSpeedState(player);
+        });
     }
 
     public void spawnFirework(Player player) {
@@ -273,5 +270,59 @@ public class PlayerListener extends Module implements LifeCycle {
                 .with(FireworkEffect.Type.valueOf(fireworkType)).withColor(fireworkColors).build());
         fm.setPower(fireworkPower);
         f.setFireworkMeta(fm);
+    }
+
+    private void applyJoinFlightState(Player player) {
+        if (!player.hasPermission(Permissions.COMMAND_FLIGHT.getPermission())) return;
+        if (inDisabledWorld(player.getLocation()) || isFightModeBlockingFlight(player)) {
+            disableFlight(player);
+            return;
+        }
+
+        player.setAllowFlight(true);
+        player.setFlying(true);
+    }
+
+    private void applyConfiguredFlightState(Player player) {
+        if (!player.hasPermission(Permissions.COMMAND_FLIGHT.getPermission())) return;
+        if (inDisabledWorld(player.getLocation()) || isFightModeBlockingFlight(player)) {
+            disableFlight(player);
+            return;
+        }
+
+        if (player.getAllowFlight()) return;
+
+        if (saveFlyState && playersSection != null && playersSection.contains(player.getUniqueId().toString())) {
+            boolean hasFly = playersSection.getBoolean(player.getUniqueId() + ".fly");
+            if (!hasFly) return;
+
+            player.setAllowFlight(hasFly);
+            player.setFlying(hasFly);
+            return;
+        }
+
+        if (forceJoinFly) {
+            player.setAllowFlight(true);
+            player.setFlying(true);
+        }
+    }
+
+    private boolean isFightModeBlockingFlight(Player player) {
+        FightModeManager fightModeManager = getPlugin().getFightModeManager();
+
+        return fightModeManager != null && fightModeManager.isInFightMode(player.getUniqueId());
+    }
+
+    private void syncSpeedState(Player player) {
+        FightModeManager fightModeManager = getPlugin().getFightModeManager();
+
+        if (fightModeManager != null) {
+            fightModeManager.syncSpeed(player);
+        }
+    }
+
+    private void disableFlight(Player player) {
+        player.setFlying(false);
+        player.setAllowFlight(false);
     }
 }

@@ -76,8 +76,8 @@ anti_wdl:
   # Should AntiWDL be enabled?
   enabled: true
 
-  # Should players with 'akropolis.antiwdl.alert' will be notified?
-  notify_admins: true
+  # Should players with 'akropolis.antiwdl.alert' be notified?
+  admin_notify: true
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # | SONG PLAYER                             |
@@ -139,7 +139,7 @@ nametag:
 
 scoreboard:
   # Should the scoreboard feature be enabled?
-  enabled: true
+  enabled: false
 
   # Should we delay showing the scoreboard?
   # Value in ticks (20 ticks = 1 second), 0 to disable.
@@ -166,7 +166,7 @@ scoreboard:
 
 tablist:
   # Should the tablist feature be enabled?
-  enabled: true
+  enabled: false
 
   # Should we refresh the tablist (update placeholders)?
   refresh:
@@ -182,8 +182,8 @@ tablist:
   # Modify the footer of the tablist.
   footer:
     - ""
-    - "    <gray>Website <dark_gray>| <yellow>www.example.com    "
-    - "    <gray>Store <dark_gray>| <yellow>store.example.com    "
+    - "    <gray>Sito <dark_gray>| <yellow>www.wafermc.it    "
+    - "    <gray>Discord <dark_gray>| <yellow>discord.wafermc.it    "
     - ""
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -192,7 +192,7 @@ tablist:
 
 announcements:
   # Should the announcements' system be enabled?
-  enabled: true
+  enabled: false
 
   # Delay sending announcements (in seconds).
   delay: 60
@@ -303,13 +303,13 @@ player_mount:
 
 double_jump:
   # Should the double jump feature be enabled?
-  enabled: true
+  enabled: false
 
   # Launch power for double jump (max 4.0).
   launch_power: 1.0
   launch_power_y: 0.9
 
-  # Toggles whether the player has to be on the ground or not to use the double jump feature.
+  # Toggles wheter the player has to be on the ground or not to use the double jump feature.
   # If you disable this option, players will be able to fly by repeatedly using the double jump option.
   on_ground: true
 
@@ -332,7 +332,7 @@ fly:
 
   # This will force the fly to be enabled on join (if player has the permission to use the fly command).
   # This option also respects the preference (if save_state is true) of the user if he disables the fly mode.
-  force_on_join: false
+  force_on_join: true
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # | CHAT MANAGEMENT                          |
@@ -357,12 +357,12 @@ groups:
     # Add all the emojis you want here.
     emojis:
       smile:
-        # ":)" or ":smile:" will be replaced by "<yellow>😀".
+        # ":)" or ":smile:" will be replaced by "<yellow>".
         emoticon: [":)", ":smile:"]
-        emoji: "<yellow>😀<reset>"
+        emoji: "<yellow><reset>"
       sunglasses:
         emoticon: ["B)", ":sunglasses:"]
-        emoji: "<yellow>😎<reset>"
+        emoji: "<yellow><reset>"
       heart:
         emoticon: ["<3", ":heart:"]
         emoji: "<red>❤<reset>"
@@ -452,7 +452,7 @@ world_settings:
   # Blocks
   disable_block_break: true
   disable_block_place: true
-  disable_block_interact: true # Chest, furnace, crop trample, etc
+  disable_block_interact: true # Chest, furnace, crop tample, etc
   disable_block_burn: true
   disable_block_fire_spread: true
   disable_block_leaf_decay: true
@@ -466,25 +466,24 @@ join_leave_messages:
   enabled: true
 
   # Set to '' if you want silent join/quit messages.
-  join_message: "<dark_gray>[<dark_green>+<dark_gray>] <yellow><player> <gray>connected!"
-  quit_message: "<dark_gray>[<dark_red>-<dark_gray>] <yellow><player> <gray>disconnected!"
+  join_message: "<dark_gray>[<dark_aqua>+<dark_gray>] <gray><player>"
+  quit_message: "<dark_gray>[<dark_aqua>-<dark_gray>] <gray><player>"
 
 # Actions executed upon join.
 join_events:
   - "[MESSAGE] <dark_gray><st>+---------------***---------------+"
   - "[MESSAGE] <reset>"
-  - "[MESSAGE] <dark_gray>| <gray>Welcome, <gold><b><player><reset> <gray>to the server!"
+  - "[MESSAGE] <dark_gray>| <gray>Benvenuto, <gold><b><player><reset> <gray>su WaferMC!"
   - "[MESSAGE] <reset>"
-  - "[MESSAGE] <dark_gray>» <gray>Website<dark_gray>: <yellow>www.example.com"
-  - "[MESSAGE] <dark_gray>» <gray>Store<dark_gray>: <yellow>store.example.com"
-  - "[MESSAGE] <dark_gray>» <gray>Discord<dark_gray>: <yellow>discord.example.com"
+  - "[MESSAGE] <dark_gray>» <gray>Sito<dark_gray>: <yellow>www.wafermc.it"
+  - "[MESSAGE] <dark_gray>» <gray>Discord<dark_gray>: <yellow>discord.wafermc.it"
   - "[MESSAGE] <reset>"
-  - "[MESSAGE]             <gray><i>Powered by Akropolis"
+  - "[MESSAGE]             <gray><i>ᴘʟᴀʏ.ᴡᴀꜰᴇʀᴍᴄ.ɪᴛ"
   - "[MESSAGE] <dark_gray><st>+---------------***---------------+"
-  - "[TITLE] <yellow><b>WELCOME;<white><player>;1;2;1"
+  - "[TITLE] <yellow><b>Benvenuto;<white><player>;1;2;1"
   - "[SOUND] ENTITY_PLAYER_LEVELUP"
-  - "[GAMEMODE] survival"
-  - "[EFFECT] SPEED;1"
+  - "[GAMEMODE] adventure"
+  - "[EFFECT] SPEED;2"
 
 join_settings:
   # Change the hotbar slot focused on join (must be a number between 0-9, -1 to disable)
@@ -529,16 +528,16 @@ custom_join_items:
       slot: 0
       # custom_model_data:
       #   - test
-      display_name: "<gold>Server Information <gray>(Right-Click)"
+      display_name: "<gold>ɪɴꜰᴏʀᴍᴀᴢɪᴏɴɪ ꜱᴇʀᴠᴇʀ <gray>(ᴛᴀꜱᴛᴏ ᴅᴇꜱᴛʀᴏ)"
       lore:
-        - "<dark_gray>» <gray>Right click to see information about the server!"
+        - "<dark_gray>» <gray>ᴄʟɪᴄᴄᴀ ᴄᴏʟ ᴛᴀꜱᴛᴏ ᴅᴇꜱᴛʀᴏ ᴘᴇʀ ɪɴꜰᴏ ꜱᴜʟ ꜱᴇʀᴠᴇʀ!"
       actions:
         - "[MESSAGE] <reset>"
-        - "[MESSAGE] <dark_gray>| <gold><b>Server Information"
+        - "[MESSAGE] <dark_gray>| <gold><b>Informazioni Server"
         - "[MESSAGE] <reset>"
-        - "[MESSAGE] <dark_gray>» <gray>Website<dark_gray>: <yellow>www.example.com"
-        - "[MESSAGE] <dark_gray>» <gray>Store<dark_gray>: <yellow>buy.example.com"
-        - "[MESSAGE] <dark_gray>» <gray>Discord<dark_gray>: <yellow>discord.example.com"
+        - "[MESSAGE] <dark_gray>» <gray>Sito Web<dark_gray>: <yellow>www.wafermc.it"
+        - "[MESSAGE] <dark_gray>» <gray>Discord<dark_gray>: <yellow>discord.wafermc.it"
+        - "[MESSAGE] <dark_gray>» <gray>Twitch<dark_gray>: <yellow>Twitch.wafermc.it"
         - "[MESSAGE] <reset>"
     server_selector:
       material: NETHER_STAR
@@ -547,11 +546,22 @@ custom_join_items:
       # tooltip_style: minecraft:rainbow
       # Should we limit how fast a user can use this item?
       cooldown: 3 # seconds
-      display_name: "<aqua>Server Selector <gray>(Right-Click)"
+      display_name: "<aqua>ꜱᴇʟᴇᴢɪᴏɴᴀ ꜱᴇʀᴠᴇʀ <gray>(ᴛᴀꜱᴛᴏ ᴅᴇꜱᴛʀᴏ)"
       lore:
-        - "<dark_gray>» <gray>Right click to open the server selector!"
+        - "<dark_gray>» <gray>ᴄʟɪᴄᴋ ᴅᴇꜱᴛʀᴏ ᴘᴇʀ ꜱᴄᴇɢʟɪᴇʀᴇ ᴜɴ ꜱᴇʀᴠᴇʀ!"
       actions:
         - "[MENU] serverselector"
+    parkour:
+      material: LADDER
+      amount: 1
+      slot: 1
+      # custom_model_data:
+      #   - test
+      display_name: "<green>ɪɴɪᴢɪᴀ ᴘᴀʀᴋᴏᴜʀ <gray>(ᴛᴀꜱᴛᴏ ᴅᴇꜱᴛʀᴏ)"
+      lore:
+        - "<dark_gray>» <gray>ᴄʟɪᴄᴄᴀ ᴄᴏʟ ᴛᴀꜱᴛᴏ ᴅᴇꜱᴛʀᴏ ᴘᴇʀ ɪɴɪᴢɪᴀʀᴇ ɪʟ ᴘᴀʀᴋᴏᴜʀ!"
+      actions:
+        - "[COMMAND] ajp start"
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # | FIGHT MODE                               |
@@ -576,9 +586,9 @@ fight_mode:
     material: NETHERITE_SWORD
     amount: 1
     unbreakable: true
-    display_name: "<red>Fight Mode <gray>(Hold to toggle)"
+    display_name: "<red>ᴍᴏᴅᴀʟɪᴛᴀ̀ ᴄᴏᴍʙᴀᴛᴛɪᴍᴇɴᴛᴏ <gray>(ᴛɪᴇɴɪ ᴘᴇʀ ᴀᴛᴛɪᴠᴀʀᴇ)"
     lore:
-      - "<dark_gray>» <gray>Hold for 5 seconds to toggle the fight mode!"
+      - "<dark_gray>» <gray>ᴛɪᴇɴɪ ɪɴ ᴍᴀɴᴏ ʟᴀ ꜱᴘᴀᴅᴀ 5 ꜱᴇᴄᴏɴᴅɪ ᴘᴇʀ ᴄᴏᴍʙᴀᴛᴛᴇʀᴇ!"
     enchantments:
       - "sharpness:5" # enchantment:level
     item_flags:
@@ -618,11 +628,79 @@ fight_mode:
     countdown:
       - "[SOUND] BLOCK_AMETHYST_BLOCK_PLACE"
     activated:
-      - "[TITLE] <red><b>PvP activated!;<white>Try to survive!"
+      - "[TITLE] <red><b>ᴘᴠᴘ ᴀᴛᴛɪᴠᴀᴛᴏ!;<white>ᴄᴇʀᴄᴀ ᴅɪ ꜱᴏᴘʀᴀᴠᴠɪᴠᴇʀᴇ!"
       - "[SOUND] ENTITY_ENDER_DRAGON_GROWL"
     deactivated:
-      - "[TITLE] <green><b>PvP deactivated;<white>You've survived, uh?"
+      - "[TITLE] <green><b>ᴘᴠᴘ ᴅɪꜱᴀᴛᴛɪᴠᴀᴛᴏ;<white>ꜱᴇɪ ꜱᴏᴘʀᴀᴠᴠɪꜱꜱᴜᴛᴏ, ᴇʜ?"
       - "[SOUND] ENTITY_SNIFFER_HAPPY"
+
+  # Reward applied to the killer after a fight mode kill.
+  kill_reward:
+    enabled: true
+    mode: REGENERATION # FULL_HEAL, ADD_HEALTH, REGENERATION
+    heal_amount: 10.0 # Used by ADD_HEALTH. 2.0 = 1 heart
+    regeneration:
+      duration_seconds: 4
+      level: 5 # Used by REGENERATION. 1 = Regeneration I
+
+  # Abilita speciale della spada PvP.
+  # Click destro con la spada per lanciare un'onda circolare che si restringe mentre avanza.
+  ability:
+    enabled: true
+    cooldown: 10 # Secondi. Metti 0 per nessun cooldown
+    damage: 6.0 # 3 cuori
+
+    travel:
+      distance: 14.0
+      duration_ticks: 16
+      height_offset: 1.0
+
+    circle:
+      start_radius: 0.95
+      end_radius: 0.3
+      hitbox_radius: 0.45
+      collision_height: 1.1
+
+    particle:
+      outer:
+        type: SMOKE
+        count: 1
+        offset_x: 0.01
+        offset_y: 0.01
+        offset_z: 0.01
+        extra: 0.0
+        points: 14
+        vertical_layers: 1
+        vertical_spacing: 0.0
+        radius_multiplier: 1.0
+
+      inner:
+        type: DRAGON_BREATH
+        count: 1
+        offset_x: 0.03
+        offset_y: 0.02
+        offset_z: 0.03
+        extra: 0.01
+        points: 10
+        vertical_layers: 1
+        vertical_spacing: 0.0
+        radius_multiplier: 0.55
+
+      trail:
+        steps: 5
+        spacing: 0.4
+        radius_multiplier: 0.82
+
+    cooldown_bar:
+      enabled: true
+      update_ticks: 2
+      show_seconds: true
+
+    sound:
+      enabled: true
+      value: ENTITY_WARDEN_SONIC_BOOM
+      volume: 1.0
+      pitch: 1.2
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # | PLAYER HIDER                             |
@@ -642,13 +720,13 @@ player_hider:
   not_hidden:
     material: LIME_DYE
     amount: 1
-    display_name: "<gray>Players<dark_gray>: <green>Shown <gray>(Right-Click)"
+    display_name: "<gray>ɢɪᴏᴄᴀᴛᴏʀɪ<dark_gray>: <green>ᴠɪsɪʙɪʟɪ <gray>(ᴛᴀꜱᴛᴏ ᴅᴇsᴛʀᴏ)"
     lore:
-      - "<dark_gray>» <gray>Click to hide all players!"
+      - "<dark_gray>» <gray>ᴄʟɪᴄᴄᴀ ᴘᴇʀ ɴᴀsᴄᴏɴᴅᴇʀᴇ ᴛᴜᴛᴛɪ ɪ ɢɪᴏᴄᴀᴛᴏʀɪ!"
 
   hidden:
     material: GRAY_DYE
     amount: 1
-    display_name: "<gray>Players<dark_gray>: <red>Hidden <gray>(Right-Click)"
+    display_name: "<gray>ɢɪᴏᴄᴀᴛᴏʀɪ<dark_gray>: <red>ɴᴀsᴄᴏsᴛɪ <gray>(ᴛᴀꜱᴛᴏ ᴅᴇsᴛʀᴏ)"
     lore:
-      - "<dark_gray>» <gray>Click to show all players!"
+      - "<dark_gray>» <gray>ᴄʟɪᴄᴄᴀ ᴘᴇʀ ᴍᴏsᴛʀᴀʀᴇ ᴛᴜᴛᴛɪ ɪ ɢɪᴏᴄᴀᴛᴏʀɪ!"

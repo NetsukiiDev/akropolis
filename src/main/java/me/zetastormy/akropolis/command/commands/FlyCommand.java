@@ -32,6 +32,7 @@ import me.zetastormy.akropolis.command.InjectableCommand;
 import me.zetastormy.akropolis.config.ConfigManager;
 import me.zetastormy.akropolis.config.ConfigType;
 import me.zetastormy.akropolis.config.Message;
+import me.zetastormy.akropolis.module.modules.player.FightModeManager;
 import me.zetastormy.akropolis.util.text.TextUtil;
 
 public class FlyCommand extends InjectableCommand {
@@ -66,6 +67,11 @@ public class FlyCommand extends InjectableCommand {
                 Message.FLIGHT_DISABLE.send(player);
                 toggleFlight(player, false);
             } else {
+                if (isFlightBlockedByFightMode(player)) {
+                    Message.FLIGHT_PVP_BLOCKED.send(player);
+                    return;
+                }
+
                 Message.FLIGHT_ENABLE.send(player);
                 toggleFlight(player, true);
             }
@@ -87,6 +93,11 @@ public class FlyCommand extends InjectableCommand {
                 Message.FLIGHT_DISABLE_OTHER.sendWithReplacement(sender, "player", player.name());
                 toggleFlight(player, false);
             } else {
+                if (isFlightBlockedByFightMode(player)) {
+                    Message.FLIGHT_PVP_BLOCKED.send(sender);
+                    return;
+                }
+
                 Message.FLIGHT_ENABLE.send(player);
                 Message.FLIGHT_ENABLE_OTHER.sendWithReplacement(sender, "player", player.name());
                 toggleFlight(player, true);
@@ -103,5 +114,11 @@ public class FlyCommand extends InjectableCommand {
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
                 dataConfig.set("players." + player.getUniqueId() + ".fly", value));
+    }
+
+    private boolean isFlightBlockedByFightMode(Player player) {
+        FightModeManager fightModeManager = plugin.getFightModeManager();
+
+        return fightModeManager != null && fightModeManager.isInFightMode(player.getUniqueId());
     }
 }

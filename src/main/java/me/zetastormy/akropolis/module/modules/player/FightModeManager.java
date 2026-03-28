@@ -33,8 +33,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import me.zetastormy.akropolis.AkropolisPlugin;
+import me.zetastormy.akropolis.Permissions;
 import me.zetastormy.akropolis.config.ConfigType;
 import me.zetastormy.akropolis.config.Message;
 import me.zetastormy.akropolis.module.LifeCycle;
@@ -44,8 +47,13 @@ import me.zetastormy.akropolis.util.ItemStackBuilder;
 import net.kyori.adventure.text.Component;
 
 public class FightModeManager extends Module implements LifeCycle {
+    private static final int LONG_EFFECT_DURATION = 1000000;
+    private static final int FIGHT_MODE_SPEED_AMPLIFIER = 0;
+    private static final int DEFAULT_SPEED_AMPLIFIER = 1;
+
     private final Map<UUID, Integer> holdTasks;
     private final Map<UUID, Integer> holdTimers;
+    private final Map<UUID, Boolean> flightStates;
     private final Set<UUID> fighters;
     private ItemStack helmet;
     private ItemStack chestplate;
@@ -62,6 +70,7 @@ public class FightModeManager extends Module implements LifeCycle {
 
         this.holdTasks = new HashMap<>();
         this.holdTimers = new HashMap<>();
+        this.flightStates = new HashMap<>();
         this.fighters = new HashSet<>();
     }
 
@@ -94,6 +103,7 @@ public class FightModeManager extends Module implements LifeCycle {
     public void onDisable() {
         holdTasks.clear();
         holdTimers.clear();
+        flightStates.clear();
         fighters.clear();
     }
 
@@ -180,6 +190,9 @@ public class FightModeManager extends Module implements LifeCycle {
     public void enableFightMode(Player player) {
         if (isInFightMode(player.getUniqueId())) return;
 
+        cacheFlightState(player);
+        disableFlight(player);
+        applyFightModeSpeed(player);
         giveArmor(player);
         fighters.add(player.getUniqueId());
         executeActions(player, activatedActions);
@@ -190,7 +203,30 @@ public class FightModeManager extends Module implements LifeCycle {
 
         removeArmor(player);
         fighters.remove(player.getUniqueId());
+        restoreFlight(player);
+        applyDefaultSpeed(player);
         executeActions(player, deactivatedActions);
+    }
+
+    public void restoreFightMode(Player player) {
+        if (!isInFightMode(player.getUniqueId())) return;
+
+        disableFlight(player);
+        applyFightModeSpeed(player);
+        giveArmor(player);
+    }
+
+    public void syncSpeed(Player player) {
+        if (inDisabledWorld(player.getLocation())) {
+            player.removePotionEffect(PotionEffectType.SPEED);
+            return;
+        }
+
+        if (isInFightMode(player.getUniqueId())) {
+            applyFightModeSpeed(player);
+        } else {
+            applyDefaultSpeed(player);
+        }
     }
 
     public boolean isInFightMode(UUID playerUuid) {
@@ -213,5 +249,39 @@ public class FightModeManager extends Module implements LifeCycle {
         playerInventory.setChestplate(null);
         playerInventory.setLeggings(null);
         playerInventory.setBoots(null);
+    }
+
+    private void cacheFlightState(Player player) {
+        flightStates.put(player.getUniqueId(),
+                player.hasPermission(Permissions.COMMAND_FLIGHT.getPermission()) && player.getAllowFlight());
+    }
+
+    private void restoreFlight(Player player) {
+        Boolean shouldRestoreFlight = flightStates.remove(player.getUniqueId());
+
+        if (!Boolean.TRUE.equals(shouldRestoreFlight)) return;
+        if (!player.hasPermission(Permissions.COMMAND_FLIGHT.getPermission())) return;
+        if (inDisabledWorld(player.getLocation())) return;
+
+        player.setAllowFlight(true);
+        player.setFlying(true);
+    }
+
+    private void disableFlight(Player player) {
+        player.setFlying(false);
+        player.setAllowFlight(false);
+    }
+
+    private void applyFightModeSpeed(Player player) {
+        applySpeed(player, FIGHT_MODE_SPEED_AMPLIFIER);
+    }
+
+    private void applyDefaultSpeed(Player player) {
+        applySpeed(player, DEFAULT_SPEED_AMPLIFIER);
+    }
+
+    private void applySpeed(Player player, int amplifier) {
+        player.removePotionEffect(PotionEffectType.SPEED);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, LONG_EFFECT_DURATION, amplifier, false, false, false));
     }
 }

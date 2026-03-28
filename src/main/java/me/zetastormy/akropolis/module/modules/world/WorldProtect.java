@@ -21,6 +21,7 @@ package me.zetastormy.akropolis.module.modules.world;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,7 +30,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -59,6 +64,8 @@ import org.bukkit.event.weather.WeatherChangeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import com.cryptomorin.xseries.XMaterial;
 
@@ -95,6 +102,10 @@ public class WorldProtect extends Module implements LifeCycle {
     private boolean disableContactDamage;
     private boolean disableInventoryDrop;
     private boolean disableInventoryMovement;
+    private PlayerKillRewardMode playerKillRewardMode;
+    private double playerKillRewardHealAmount;
+    private int playerKillRewardRegenerationDurationSeconds;
+    private int playerKillRewardRegenerationLevel;
 
     private static final Set<Material> INTERACTABLE;
 
@@ -250,6 +261,7 @@ public class WorldProtect extends Module implements LifeCycle {
         disableContactDamage = config.getBoolean("world_settings.disable_contact_damage", true);
         disableInventoryDrop = config.getBoolean("world_settings.disable_inventory_drop", true);
         disableInventoryMovement = config.getBoolean("world_settings.disable_inventory_movement", true);
+        loadPlayerKillRewardSettings(config);
     }
 
     @EventHandler
@@ -585,10 +597,116 @@ public class WorldProtect extends Module implements LifeCycle {
         if (disableDeathMessage)
             event.setDeathMessage(null);
 
+        Player victim = event.getEntity();
+        Player killer = victim.getKiller();
+
+        if (shouldApplyPlayerKillReward(killer, victim)) {
+            applyPlayerKillReward(killer);
+        }
+
         if (!disableInventoryDrop)
             return;
 
         event.getDrops().clear();
+    }
+
+    private void loadPlayerKillRewardSettings(FileConfiguration config) {
+        ConfigurationSection playerKillRewardSection = config.getConfigurationSection("fight_mode.kill_reward");
+
+        if (playerKillRewardSection == null) {
+            playerKillRewardMode = config.getBoolean("world_settings.heal_killer_on_player_kill", false)
+                    ? PlayerKillRewardMode.FULL_HEAL
+                    : PlayerKillRewardMode.NONE;
+            playerKillRewardHealAmount = 8.0D;
+            playerKillRewardRegenerationDurationSeconds = 5;
+            playerKillRewardRegenerationLevel = 1;
+            return;
+        }
+
+        playerKillRewardHealAmount = Math.max(0.0D, playerKillRewardSection.getDouble("heal_amount", 8.0D));
+        playerKillRewardRegenerationDurationSeconds = Math.max(0,
+                playerKillRewardSection.getInt("regeneration.duration_seconds", 5));
+        playerKillRewardRegenerationLevel = Math.max(1, playerKillRewardSection.getInt("regeneration.level", 1));
+
+        if (!config.getBoolean("fight_mode.enabled", false) || !playerKillRewardSection.getBoolean("enabled", true)) {
+            playerKillRewardMode = PlayerKillRewardMode.NONE;
+            return;
+        }
+
+        playerKillRewardMode = parsePlayerKillRewardMode(
+                playerKillRewardSection.getString("mode", PlayerKillRewardMode.FULL_HEAL.name()));
+    }
+
+    private PlayerKillRewardMode parsePlayerKillRewardMode(String rawMode) {
+        if (rawMode == null || rawMode.isBlank()) return PlayerKillRewardMode.FULL_HEAL;
+
+        try {
+            return PlayerKillRewardMode.valueOf(rawMode.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            getPlugin().getLogger().warning("[Akropolis] Invalid fight_mode.kill_reward.mode: "
+                    + rawMode.toUpperCase(Locale.ROOT) + ". Falling back to FULL_HEAL.");
+            return PlayerKillRewardMode.FULL_HEAL;
+        }
+    }
+
+    private boolean shouldApplyPlayerKillReward(Player killer, Player victim) {
+        if (playerKillRewardMode == PlayerKillRewardMode.NONE || killer == null || !killer.isOnline() || killer.isDead()) {
+            return false;
+        }
+
+        FightModeManager fightModeManager = getPlugin().getFightModeManager();
+
+        if (fightModeManager == null) {
+            return false;
+        }
+
+        return fightModeManager.isInFightMode(killer.getUniqueId()) && fightModeManager.isInFightMode(victim.getUniqueId());
+    }
+
+    private void applyPlayerKillReward(Player killer) {
+        switch (playerKillRewardMode) {
+            case FULL_HEAL -> healToMaxHealth(killer);
+            case ADD_HEALTH -> addHealth(killer, playerKillRewardHealAmount);
+            case REGENERATION -> applyRegeneration(killer);
+            case NONE -> {
+            }
+        }
+    }
+
+    private void healToMaxHealth(Player player) {
+        double maxHealth = getMaxHealth(player);
+
+        if (maxHealth <= 0.0D) return;
+
+        player.setHealth(maxHealth);
+    }
+
+    private void addHealth(Player player, double amount) {
+        double maxHealth = getMaxHealth(player);
+
+        if (maxHealth <= 0.0D || amount <= 0.0D) return;
+
+        player.setHealth(Math.min(maxHealth, player.getHealth() + amount));
+    }
+
+    private void applyRegeneration(Player player) {
+        if (playerKillRewardRegenerationDurationSeconds <= 0) return;
+
+        player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION,
+                playerKillRewardRegenerationDurationSeconds * 20, playerKillRewardRegenerationLevel - 1));
+    }
+
+    private double getMaxHealth(Player player) {
+        Attribute legacyMaxHealth = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("generic.max_health"));
+        Attribute maxHealthAttribute = legacyMaxHealth;
+
+        if (legacyMaxHealth == null) maxHealthAttribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("max_health"));
+        if (maxHealthAttribute == null) return -1.0D;
+
+        AttributeInstance maxHealth = player.getAttribute(maxHealthAttribute);
+        if (maxHealth == null) return -1.0D;
+
+        return maxHealth.getValue();
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -623,5 +741,12 @@ public class WorldProtect extends Module implements LifeCycle {
 
             if (message != Component.empty()) event.getDamager().sendMessage(message);
         }
+    }
+
+    private enum PlayerKillRewardMode {
+        NONE,
+        FULL_HEAL,
+        ADD_HEALTH,
+        REGENERATION
     }
 }
