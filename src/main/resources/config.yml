@@ -634,6 +634,12 @@ fight_mode:
       - "[TITLE] <green><b>ᴘᴠᴘ ᴅɪꜱᴀᴛᴛɪᴠᴀᴛᴏ;<white>ꜱᴇɪ ꜱᴏᴘʀᴀᴠᴠɪꜱꜱᴜᴛᴏ, ᴇʜ?"
       - "[SOUND] ENTITY_SNIFFER_HAPPY"
 
+  # Effetti velocità.
+  # 0 disabilita l'effetto. 1 = Speed I, 2 = Speed II, ecc.
+  speed:
+    in_pvp: 0
+    out_of_pvp: 2
+
   # Reward applied to the killer after a fight mode kill.
   kill_reward:
     enabled: true
@@ -642,6 +648,47 @@ fight_mode:
     regeneration:
       duration_seconds: 4
       level: 5 # Used by REGENERATION. 1 = Regeneration I
+
+  # Leaderboard PvP con FancyHolograms.
+  # Crea il ranking con /akropolis leaderboard create <id>
+  # e cambia categoria con click destro sull'ologramma.
+  leaderboard:
+    enabled: true
+    update_ticks: 10
+    top_size: 10
+    assist_timeout_seconds: 15
+    default_mode: KILLS # KILLS, DEATHS, ASSISTS, KD
+
+    interaction:
+      width: 2.8
+      height: 4.5
+      y_offset: 0.0
+
+    appearance:
+      billboard: FIXED # FIXED, CENTER, VERTICAL, HORIZONTAL
+      scale: 1.0
+      background: NONE # NONE oppure HEX tipo #000000
+      text_shadow: true
+      see_through: false
+
+    text:
+      bold:
+        title: true
+        subtitle: false
+        entries: false
+        empty: false
+        footer: false
+      title: "<gold>Classifica PVP"
+      subtitle: "<gray>Top <yellow><limit> <dark_gray>- <mode>"
+      entry: "<gray><position> <green><player> <dark_gray>- <yellow><value>"
+      empty: "<dark_gray>» <gray>Nessun dato disponibile."
+      footer: "<gray>(Click destro per cambiare)"
+
+    mode_names:
+      kills: "<gold>Kill"
+      deaths: "<red>Morti"
+      assists: "<aqua>Assist"
+      kd: "<yellow>K/D"
 
   # Abilita speciale della spada PvP.
   # Click destro con la spada per lanciare un'onda circolare che si restringe mentre avanza.
@@ -695,6 +742,18 @@ fight_mode:
       enabled: true
       update_ticks: 2
       show_seconds: true
+
+    action_bar:
+      enabled: true
+      text: "<dark_gray>» <gray>ᴀʙɪʟɪᴛᴀ̀<dark_gray> <status><dark_gray> «"
+      ready_text: "<green>ᴘʀᴏɴᴛᴀ"
+      cooldown_text: "<red>ɪɴ ʀɪᴄᴀʀɪᴄᴀ <dark_gray>"
+
+    ready_sound:
+      enabled: true
+      value: BLOCK_NOTE_BLOCK_PLING
+      volume: 1.0
+      pitch: 1.6
 
     sound:
       enabled: true

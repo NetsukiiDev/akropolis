@@ -48,6 +48,7 @@ repositories {
     maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
     maven("https://repo.codemc.org/repository/maven-public")
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
+    maven("https://repo.fancyinnovations.com/releases")
     maven("https://jitpack.io")
 }
 
@@ -74,6 +75,7 @@ dependencies {
 
     compileOnly("io.github.miniplaceholders:miniplaceholders-api:3.1.0")
     compileOnly("com.github.koca2000:NoteBlockAPI:1.6.3")
+    compileOnly("de.oliver:FancyHolograms:2.9.1")
 }
 
 configurations.implementation {

@@ -22,11 +22,13 @@ package me.zetastormy.akropolis.command.commands;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 
 import me.zetastormy.akropolis.AkropolisPlugin;
@@ -41,6 +43,9 @@ import me.zetastormy.akropolis.module.ModuleType;
 import me.zetastormy.akropolis.module.modules.hologram.Hologram;
 import me.zetastormy.akropolis.module.modules.hotbar.HotbarItem;
 import me.zetastormy.akropolis.module.modules.hotbar.HotbarManager;
+import me.zetastormy.akropolis.module.modules.player.PvpLeaderboardManager;
+import me.zetastormy.akropolis.module.modules.player.PvpLeaderboardManager.LeaderboardInstance;
+import me.zetastormy.akropolis.module.modules.player.PvpLeaderboardManager.LeaderboardMode;
 import me.zetastormy.akropolis.module.modules.visual.scoreboard.ScoreboardManager;
 import me.zetastormy.akropolis.module.modules.world.LobbySpawn;
 import me.zetastormy.akropolis.module.modules.world.SongPlayerManager;
@@ -221,6 +226,254 @@ public class AkropolisCommand extends InjectableCommand {
                 return;
             }
             inventory.openInventory((Player) sender);
+        }
+
+        /*
+         * PvP leaderboards
+         */
+        if (args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("leaderboards")
+                || args[0].equalsIgnoreCase("lb")) {
+
+            if (!sender.hasPermission(Permissions.COMMAND_LEADERBOARDS.getPermission())) {
+                Message.NO_PERMISSION.send(sender);
+                return;
+            }
+
+            if (!plugin.getModuleManager().isEnabled(ModuleType.PVP_LEADERBOARDS) || plugin.getPvpLeaderboardManager() == null) {
+                sender.sendMessage(prefixed("<red>Le leaderboard PvP non sono disponibili. Verifica FancyHolograms e la config."));
+                return;
+            }
+
+            PvpLeaderboardManager leaderboardManager = plugin.getPvpLeaderboardManager();
+
+            if (args.length == 1) {
+                sendLeaderboardHelp(sender);
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("list")) {
+                if (leaderboardManager.getLeaderboards().isEmpty()) {
+                    sender.sendMessage(prefixed("<red>Nessuna leaderboard PvP trovata."));
+                    return;
+                }
+
+                sender.sendMessage(prefixed("<gray>Leaderboard PvP disponibili<dark_gray>:"));
+                for (LeaderboardInstance instance : leaderboardManager.getLeaderboards()) {
+                    Location location = instance.getLocation();
+                    sender.sendMessage(TextUtil.parse("<dark_gray>- <yellow>" + instance.getId()
+                            + " <dark_gray>(" + leaderboardManager.getModeLabel(instance.getMode())
+                            + "<dark_gray>) <gray>@ <yellow>" + location.getWorld().getName()
+                            + " <dark_gray>[<gray>" + location.getBlockX() + ", " + location.getBlockY() + ", "
+                            + location.getBlockZ() + "<dark_gray>]"));
+                }
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("create")) {
+                if (!(sender instanceof Player player)) {
+                    Message.CONSOLE_NOT_ALLOWED.send(sender);
+                    return;
+                }
+
+                if (args.length < 3) {
+                    Message.USAGE.sendWithReplacement(sender, "command", Component.text("akropolis leaderboard create <id>"));
+                    return;
+                }
+
+                if (!leaderboardManager.createLeaderboard(args[2], player.getLocation())) {
+                    sender.sendMessage(prefixed("<red>Impossibile creare la leaderboard. L'id esiste già oppure la posizione non è valida."));
+                    return;
+                }
+
+                sender.sendMessage(prefixed("<green>Leaderboard PvP <yellow>" + args[2] + " <green>creata."));
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("move")) {
+                if (!(sender instanceof Player player)) {
+                    Message.CONSOLE_NOT_ALLOWED.send(sender);
+                    return;
+                }
+
+                if (args.length < 3) {
+                    Message.USAGE.sendWithReplacement(sender, "command", Component.text("akropolis leaderboard move <id>"));
+                    return;
+                }
+
+                if (!leaderboardManager.moveLeaderboard(args[2], player.getLocation())) {
+                    sender.sendMessage(prefixed("<red>Non esiste nessuna leaderboard PvP con id <yellow>" + args[2] + "<red>."));
+                    return;
+                }
+
+                sender.sendMessage(prefixed("<green>Leaderboard PvP <yellow>" + args[2] + " <green>spostata."));
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("remove") || args[1].equalsIgnoreCase("delete")) {
+                if (args.length < 3) {
+                    Message.USAGE.sendWithReplacement(sender, "command", Component.text("akropolis leaderboard remove <id>"));
+                    return;
+                }
+
+                if (!leaderboardManager.removeLeaderboard(args[2])) {
+                    sender.sendMessage(prefixed("<red>Non esiste nessuna leaderboard PvP con id <yellow>" + args[2] + "<red>."));
+                    return;
+                }
+
+                sender.sendMessage(prefixed("<green>Leaderboard PvP <yellow>" + args[2] + " <green>rimossa."));
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("mode")) {
+                if (args.length < 4) {
+                    Message.USAGE.sendWithReplacement(sender, "command", Component.text("akropolis leaderboard mode <id> <kills|deaths|assists|kd>"));
+                    return;
+                }
+
+                LeaderboardMode mode = leaderboardManager.parseMode(args[3]);
+                if (mode == null) {
+                    sender.sendMessage(prefixed("<red>Modalità non valida. Usa <yellow>kills<red>, <yellow>deaths<red>, <yellow>assists <red>o <yellow>kd<red>."));
+                    return;
+                }
+
+                if (leaderboardManager.setMode(args[2], mode) == null) {
+                    sender.sendMessage(prefixed("<red>Non esiste nessuna leaderboard PvP con id <yellow>" + args[2] + "<red>."));
+                    return;
+                }
+
+                sender.sendMessage(prefixed("<green>Leaderboard PvP <yellow>" + args[2] + " <green>impostata su "
+                        + leaderboardManager.getModeLabel(mode) + "<green>."));
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("rotate")) {
+                if (args.length < 4) {
+                    Message.USAGE.sendWithReplacement(sender, "command", Component.text("akropolis leaderboard rotate <id> <yaw> [pitch]"));
+                    return;
+                }
+
+                LeaderboardInstance instance = leaderboardManager.getLeaderboard(args[2]);
+                if (instance == null) {
+                    sender.sendMessage(prefixed("<red>Non esiste nessuna leaderboard PvP con id <yellow>" + args[2] + "<red>."));
+                    return;
+                }
+
+                float yaw;
+                float pitch = instance.getLocation().getPitch();
+
+                try {
+                    yaw = Float.parseFloat(args[3]);
+                    if (args.length >= 5) {
+                        pitch = Float.parseFloat(args[4]);
+                    }
+                } catch (NumberFormatException exception) {
+                    sender.sendMessage(prefixed("<red>Yaw e pitch devono essere numeri validi."));
+                    return;
+                }
+
+                leaderboardManager.setRotation(args[2], yaw, pitch);
+                sender.sendMessage(prefixed("<green>Rotazione aggiornata <dark_gray>(<gray>yaw <yellow>"
+                        + formatDecimal(yaw) + "<gray>, pitch <yellow>" + formatDecimal(pitch) + "<dark_gray>)<green>."));
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("billboard")) {
+                if (args.length < 4) {
+                    Message.USAGE.sendWithReplacement(sender, "command",
+                            Component.text("akropolis leaderboard billboard <id> <fixed|center|vertical|horizontal>"));
+                    return;
+                }
+
+                Display.Billboard billboard = leaderboardManager.parseBillboard(args[3]);
+                if (billboard == null) {
+                    sender.sendMessage(prefixed("<red>Billboard non valido. Usa <yellow>fixed<red>, <yellow>center<red>, <yellow>vertical <red>o <yellow>horizontal<red>."));
+                    return;
+                }
+
+                if (leaderboardManager.setBillboard(args[2], billboard) == null) {
+                    sender.sendMessage(prefixed("<red>Non esiste nessuna leaderboard PvP con id <yellow>" + args[2] + "<red>."));
+                    return;
+                }
+
+                sender.sendMessage(prefixed("<green>Billboard impostato su <yellow>" + billboard.name().toLowerCase(Locale.ROOT) + "<green>."));
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("scale")) {
+                if (args.length < 4) {
+                    Message.USAGE.sendWithReplacement(sender, "command", Component.text("akropolis leaderboard scale <id> <value>"));
+                    return;
+                }
+
+                float scale;
+                try {
+                    scale = Float.parseFloat(args[3]);
+                } catch (NumberFormatException exception) {
+                    sender.sendMessage(prefixed("<red>La scala deve essere un numero valido."));
+                    return;
+                }
+
+                Float appliedScale = leaderboardManager.setScale(args[2], scale);
+                if (appliedScale == null) {
+                    sender.sendMessage(prefixed("<red>Non esiste nessuna leaderboard PvP con id <yellow>" + args[2] + "<red>."));
+                    return;
+                }
+
+                sender.sendMessage(prefixed("<green>Scala impostata a <yellow>" + formatDecimal(appliedScale) + "<green>."));
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("background")) {
+                if (args.length < 4) {
+                    Message.USAGE.sendWithReplacement(sender, "command", Component.text("akropolis leaderboard background <id> <none|#RRGGBB>"));
+                    return;
+                }
+
+                var background = leaderboardManager.parseBackground(args[3]);
+                if (background == null) {
+                    sender.sendMessage(prefixed("<red>Background non valido. Usa <yellow>none <red>oppure un colore HEX tipo <yellow>#000000<red>."));
+                    return;
+                }
+
+                if (leaderboardManager.setBackground(args[2], background) == null) {
+                    sender.sendMessage(prefixed("<red>Non esiste nessuna leaderboard PvP con id <yellow>" + args[2] + "<red>."));
+                    return;
+                }
+
+                sender.sendMessage(prefixed("<green>Background impostato su <yellow>" + leaderboardManager.formatBackground(background) + "<green>."));
+                return;
+            }
+
+            if (args[1].equalsIgnoreCase("settings")) {
+                if (args.length < 3) {
+                    Message.USAGE.sendWithReplacement(sender, "command", Component.text("akropolis leaderboard settings <id>"));
+                    return;
+                }
+
+                LeaderboardInstance instance = leaderboardManager.getLeaderboard(args[2]);
+                if (instance == null) {
+                    sender.sendMessage(prefixed("<red>Non esiste nessuna leaderboard PvP con id <yellow>" + args[2] + "<red>."));
+                    return;
+                }
+
+                Location location = instance.getLocation();
+                sender.sendMessage(prefixed("<gray>Impostazioni leaderboard <yellow>" + instance.getId() + "<dark_gray>:"));
+                sender.sendMessage(TextUtil.parse("<dark_gray>» <gray>Modalità<dark_gray>: " + leaderboardManager.getModeLabel(instance.getMode())));
+                sender.sendMessage(TextUtil.parse("<dark_gray>» <gray>Billboard<dark_gray>: <yellow>"
+                        + instance.getBillboard().name().toLowerCase(Locale.ROOT)));
+                sender.sendMessage(TextUtil.parse("<dark_gray>» <gray>Scala<dark_gray>: <yellow>" + formatDecimal(instance.getScale())));
+                sender.sendMessage(TextUtil.parse("<dark_gray>» <gray>Background<dark_gray>: <yellow>"
+                        + leaderboardManager.formatBackground(instance.getBackground())));
+                sender.sendMessage(TextUtil.parse("<dark_gray>» <gray>Rotazione<dark_gray>: <yellow>yaw "
+                        + formatDecimal(location.getYaw()) + "<gray>, pitch <yellow>" + formatDecimal(location.getPitch())));
+                sender.sendMessage(TextUtil.parse("<dark_gray>» <gray>Posizione<dark_gray>: <yellow>" + location.getWorld().getName()
+                        + " <dark_gray>[<gray>" + location.getBlockX() + ", " + location.getBlockY() + ", "
+                        + location.getBlockZ() + "<dark_gray>]"));
+                return;
+            }
+
+            sendLeaderboardHelp(sender);
+            return;
         }
 
         /*
@@ -432,5 +685,27 @@ public class AkropolisCommand extends InjectableCommand {
                 }, 20L);
             }
         }
+    }
+
+    private void sendLeaderboardHelp(CommandSender sender) {
+        sender.sendMessage(prefixed("<gray>Comandi leaderboard PvP<dark_gray>:"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard list <dark_gray>- <gray>Lista tutte le leaderboard PvP"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard create <id> <dark_gray>- <gray>Crea una leaderboard FancyHolograms"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard move <id> <dark_gray>- <gray>Sposta una leaderboard alla tua posizione"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard remove <id> <dark_gray>- <gray>Rimuove una leaderboard"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard mode <id> <kills|deaths|assists|kd> <dark_gray>- <gray>Cambia la statistica mostrata"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard rotate <id> <yaw> [pitch] <dark_gray>- <gray>Ruota la leaderboard"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard billboard <id> <type> <dark_gray>- <gray>Cambia il billboard"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard scale <id> <value> <dark_gray>- <gray>Cambia la scala del testo"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard background <id> <none|#RRGGBB> <dark_gray>- <gray>Cambia lo sfondo del testo"));
+        sender.sendMessage(TextUtil.parse("<dark_gray>/<gold>akropolis leaderboard settings <id> <dark_gray>- <gray>Mostra le impostazioni correnti"));
+    }
+
+    private Component prefixed(String message) {
+        return TextUtil.parse(Message.PREFIX.raw() + " " + message);
+    }
+
+    private String formatDecimal(float value) {
+        return String.format(Locale.US, "%.1f", value);
     }
 }

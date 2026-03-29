@@ -48,8 +48,6 @@ import net.kyori.adventure.text.Component;
 
 public class FightModeManager extends Module implements LifeCycle {
     private static final int LONG_EFFECT_DURATION = 1000000;
-    private static final int FIGHT_MODE_SPEED_AMPLIFIER = 0;
-    private static final int DEFAULT_SPEED_AMPLIFIER = 1;
 
     private final Map<UUID, Integer> holdTasks;
     private final Map<UUID, Integer> holdTimers;
@@ -61,6 +59,8 @@ public class FightModeManager extends Module implements LifeCycle {
     private ItemStack boots;
     private int activateDelay;
     private int deactivateDelay;
+    private int fightModeSpeedLevel;
+    private int defaultSpeedLevel;
     private List<String> countdownActions;
     private List<String> activatedActions;
     private List<String> deactivatedActions;
@@ -84,6 +84,8 @@ public class FightModeManager extends Module implements LifeCycle {
         ItemStack boots = ItemStackBuilder.getItemStack(conf.getConfigurationSection("armor.boots")).build();
         int activateDelay = conf.getInt("hold_delay.activate");
         int deactivateDelay = conf.getInt("hold_delay.deactivate");
+        int fightModeSpeedLevel = Math.max(0, conf.getInt("speed.in_pvp", 1));
+        int defaultSpeedLevel = Math.max(0, conf.getInt("speed.out_of_pvp", 2));
         List<String> countdownActions = conf.getStringList("actions.countdown");
         List<String> activatedActions = conf.getStringList("actions.activated");
         List<String> deactivatedActions = conf.getStringList("actions.deactivated");
@@ -94,6 +96,8 @@ public class FightModeManager extends Module implements LifeCycle {
         this.boots = boots;
         this.activateDelay = activateDelay;
         this.deactivateDelay = deactivateDelay;
+        this.fightModeSpeedLevel = fightModeSpeedLevel;
+        this.defaultSpeedLevel = defaultSpeedLevel;
         this.countdownActions = countdownActions;
         this.activatedActions = activatedActions;
         this.deactivatedActions = deactivatedActions;
@@ -273,15 +277,19 @@ public class FightModeManager extends Module implements LifeCycle {
     }
 
     private void applyFightModeSpeed(Player player) {
-        applySpeed(player, FIGHT_MODE_SPEED_AMPLIFIER);
+        applySpeed(player, fightModeSpeedLevel);
     }
 
     private void applyDefaultSpeed(Player player) {
-        applySpeed(player, DEFAULT_SPEED_AMPLIFIER);
+        applySpeed(player, defaultSpeedLevel);
     }
 
-    private void applySpeed(Player player, int amplifier) {
+    private void applySpeed(Player player, int level) {
         player.removePotionEffect(PotionEffectType.SPEED);
+
+        if (level <= 0) return;
+
+        int amplifier = level - 1;
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, LONG_EFFECT_DURATION, amplifier, false, false, false));
     }
 }

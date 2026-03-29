@@ -46,6 +46,7 @@ import me.zetastormy.akropolis.module.modules.player.PlayerListener;
 import me.zetastormy.akropolis.module.modules.player.PlayerMount;
 import me.zetastormy.akropolis.module.modules.player.PlayerOffHandSwap;
 import me.zetastormy.akropolis.module.modules.player.PlayerVanish;
+import me.zetastormy.akropolis.module.modules.player.PvpLeaderboardManager;
 import me.zetastormy.akropolis.module.modules.visual.bossbar.BossBarBroadcast;
 import me.zetastormy.akropolis.module.modules.visual.nametag.NametagManager;
 import me.zetastormy.akropolis.module.modules.visual.scoreboard.ScoreboardManager;
@@ -140,6 +141,13 @@ public class ModuleManager implements Listener {
         registerModule(new HologramManager(plugin));
         registerModule(new PlayerOffHandSwap(plugin), "world_settings.disable_off_hand_swap");
         registerModule(new FightModeManager(plugin), "fight_mode.enabled");
+
+        if (plugin.getHookManager().isHookEnabled("FANCY_HOLOGRAMS")) {
+            registerModule(new PvpLeaderboardManager(plugin), "fight_mode.leaderboard.enabled");
+        } else if (plugin.getConfigManager().getFile(ConfigType.SETTINGS).get()
+                .getBoolean("fight_mode.leaderboard.enabled", false)) {
+            plugin.getLogger().warning("FancyHolograms is not installed and enabled! PvP leaderboards won't be enabled.");
+        }
 
         this.createDisabledWorlds();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);

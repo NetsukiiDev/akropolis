@@ -23,6 +23,7 @@ Messages:
       - "<dark_gray>/<gold>akropolis scoreboard <dark_gray>- <gray>Attiva/disattiva la scoreboard"
       - "<dark_gray>/<gold>akropolis hotbar <dark_gray>- <gray>Attiva/disattiva gli oggetti hotbar"
       - "<dark_gray>/<gold>akropolis holo [opzione] <dark_gray>- <gray>Comandi per gli ologrammi"
+      - "<dark_gray>/<gold>akropolis leaderboard [opzione] <dark_gray>- <gray>Comandi per la leaderboard PvP"
       - "<dark_gray>/<gold>akropolis open <menu> <dark_gray>- <gray>Apre un menu personalizzato"
       - "<dark_gray>/<gold>vanish <dark_gray>- <gray>Attiva/disattiva il vanish"
       - "<dark_gray>/<gold>fly [player] <dark_gray>- <gray>Attiva/disattiva il volo"

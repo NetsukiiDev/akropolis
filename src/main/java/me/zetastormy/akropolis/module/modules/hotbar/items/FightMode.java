@@ -50,6 +50,8 @@ import me.zetastormy.akropolis.module.ModuleType;
 import me.zetastormy.akropolis.module.modules.hotbar.HotbarItem;
 import me.zetastormy.akropolis.module.modules.hotbar.HotbarManager;
 import me.zetastormy.akropolis.module.modules.player.FightModeManager;
+import me.zetastormy.akropolis.util.text.PlaceholderUtil;
+import net.kyori.adventure.text.Component;
 
 public class FightMode extends HotbarItem {
     private static final String ABILITY_COOLDOWN_KEY = "fight_mode_ability";
@@ -77,8 +79,17 @@ public class FightMode extends HotbarItem {
     private final boolean abilityCooldownBarEnabled;
     private final int abilityCooldownBarUpdateTicks;
     private final boolean abilityCooldownBarShowSeconds;
+    private final boolean abilityActionBarEnabled;
+    private final String abilityActionBarText;
+    private final String abilityActionBarReadyText;
+    private final String abilityActionBarCooldownText;
+    private final boolean abilityReadySoundEnabled;
+    private final Sound abilityReadySound;
+    private final float abilityReadySoundVolume;
+    private final float abilityReadySoundPitch;
     private final Map<UUID, ExperienceSnapshot> abilityExperienceSnapshots;
     private final Set<Particle> warnedUnsupportedParticles;
+    private final Set<UUID> abilityPlayersOnCooldown;
 
     public FightMode(HotbarManager hotbarManager, ItemStack item, int slot, String keyValue) {
         super(hotbarManager, item, slot, keyValue);
@@ -86,6 +97,7 @@ public class FightMode extends HotbarItem {
         this.fightModeManager = (FightModeManager) getPlugin().getModuleManager().getModule(ModuleType.FIGHT_MODE);
         this.abilityExperienceSnapshots = new HashMap<>();
         this.warnedUnsupportedParticles = new HashSet<>();
+        this.abilityPlayersOnCooldown = new HashSet<>();
 
         ConfigurationSection abilitySection = getPlugin()
                 .getConfigManager()
@@ -116,6 +128,14 @@ public class FightMode extends HotbarItem {
             abilityCooldownBarEnabled = true;
             abilityCooldownBarUpdateTicks = 2;
             abilityCooldownBarShowSeconds = true;
+            abilityActionBarEnabled = true;
+            abilityActionBarText = "<dark_gray>» <gray>ᴀʙɪʟɪᴛᴀ<dark_gray>: <status>";
+            abilityActionBarReadyText = "<green>ᴘʀᴏɴᴛᴀ";
+            abilityActionBarCooldownText = "<red>ɪɴ ʀɪᴄᴀʀɪᴄᴀ <dark_gray>(<yellow><seconds>s<dark_gray>)";
+            abilityReadySoundEnabled = true;
+            abilityReadySound = Sound.BLOCK_NOTE_BLOCK_PLING;
+            abilityReadySoundVolume = 1.0F;
+            abilityReadySoundPitch = 1.6F;
             return;
         }
 
@@ -127,6 +147,8 @@ public class FightMode extends HotbarItem {
         ConfigurationSection trailSection = particleSection == null ? null : particleSection.getConfigurationSection("trail");
         ConfigurationSection soundSection = abilitySection.getConfigurationSection("sound");
         ConfigurationSection cooldownBarSection = abilitySection.getConfigurationSection("cooldown_bar");
+        ConfigurationSection actionBarSection = abilitySection.getConfigurationSection("action_bar");
+        ConfigurationSection readySoundSection = abilitySection.getConfigurationSection("ready_sound");
 
         abilityEnabled = abilitySection.getBoolean("enabled", true);
         abilityCooldown = Math.max(0L, abilitySection.getLong("cooldown", 10L));
@@ -159,9 +181,28 @@ public class FightMode extends HotbarItem {
         abilityCooldownBarUpdateTicks = Math.max(1,
                 cooldownBarSection == null ? 2 : cooldownBarSection.getInt("update_ticks", 2));
         abilityCooldownBarShowSeconds = cooldownBarSection == null || cooldownBarSection.getBoolean("show_seconds", true);
+        abilityActionBarEnabled = actionBarSection == null || actionBarSection.getBoolean("enabled", true);
+        abilityActionBarText = actionBarSection == null
+                ? "<dark_gray>» <gray>ᴀʙɪʟɪᴛᴀ<dark_gray>: <status>"
+                : actionBarSection.getString("text", "<dark_gray>» <gray>ᴀʙɪʟɪᴛᴀ<dark_gray>: <status>");
+        abilityActionBarReadyText = actionBarSection == null
+                ? "<green>ᴘʀᴏɴᴛᴀ"
+                : actionBarSection.getString("ready_text", "<green>ᴘʀᴏɴᴛᴀ");
+        abilityActionBarCooldownText = actionBarSection == null
+                ? "<red>ɪɴ ʀɪᴄᴀʀɪᴄᴀ <dark_gray>(<yellow><seconds>s<dark_gray>)"
+                : actionBarSection.getString("cooldown_text",
+                "<red>ɪɴ ʀɪᴄᴀʀɪᴄᴀ <dark_gray>(<yellow><seconds>s<dark_gray>)");
+        abilityReadySoundEnabled = readySoundSection == null || readySoundSection.getBoolean("enabled", true);
+        abilityReadySound = parseSound(readySoundSection == null
+                ? "BLOCK_NOTE_BLOCK_PLING"
+                : readySoundSection.getString("value", "BLOCK_NOTE_BLOCK_PLING"));
+        abilityReadySoundVolume = (float) Math.max(0.0D,
+                readySoundSection == null ? 1.0D : readySoundSection.getDouble("volume", 1.0D));
+        abilityReadySoundPitch = (float) Math.max(0.0D,
+                readySoundSection == null ? 1.6D : readySoundSection.getDouble("pitch", 1.6D));
 
-        if (abilityEnabled && abilityCooldownBarEnabled) {
-            startAbilityCooldownBarTask();
+        if (abilityEnabled && (abilityCooldownBarEnabled || abilityActionBarEnabled || abilityReadySoundEnabled)) {
+            startAbilityStatusTask();
         }
     }
 
@@ -183,13 +224,13 @@ public class FightMode extends HotbarItem {
         if (!fightModeManager.isValidItem(player.getInventory().getItemInMainHand())) return;
 
         if (abilityCooldown > 0L && getAbilityCooldownRemaining(player.getUniqueId()) > 0L) {
-            syncAbilityCooldownBar(player);
+            syncAbilityStatus(player);
             return;
         }
 
         if (abilityCooldown > 0L) {
             getPlugin().getCooldownManager().setCooldown(player.getUniqueId(), ABILITY_COOLDOWN_KEY, abilityCooldown);
-            syncAbilityCooldownBar(player);
+            syncAbilityStatus(player);
         }
 
         castAbility(player);
@@ -227,13 +268,13 @@ public class FightMode extends HotbarItem {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        clearAbilityCooldownBar(event.getPlayer());
+        clearAbilityStatus(event.getPlayer());
         fightModeManager.disableFightMode(event.getPlayer());
     }
 
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent event) {
-        clearAbilityCooldownBar(event.getPlayer());
+        clearAbilityStatus(event.getPlayer());
         fightModeManager.disableFightMode(event.getPlayer());
     }
 
@@ -475,28 +516,44 @@ public class FightMode extends HotbarItem {
         }
     }
 
-    private void startAbilityCooldownBarTask() {
+    private void startAbilityStatusTask() {
         Bukkit.getScheduler().runTaskTimer(getPlugin(), () -> {
             for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                if (shouldDisplayAbilityCooldownBar(onlinePlayer)) {
-                    syncAbilityCooldownBar(onlinePlayer);
+                if (shouldTrackAbilityStatus(onlinePlayer)) {
+                    syncAbilityStatus(onlinePlayer);
                 } else {
-                    clearAbilityCooldownBar(onlinePlayer);
+                    clearAbilityStatus(onlinePlayer);
                 }
             }
         }, 1L, abilityCooldownBarUpdateTicks);
     }
 
-    private boolean shouldDisplayAbilityCooldownBar(Player player) {
+    private boolean shouldTrackAbilityStatus(Player player) {
         return abilityEnabled
-                && abilityCooldownBarEnabled
                 && !getHotbarManager().inDisabledWorld(player.getLocation())
                 && fightModeManager.isInFightMode(player.getUniqueId());
     }
 
-    private void syncAbilityCooldownBar(Player player) {
-        if (!abilityCooldownBarEnabled) return;
+    private void syncAbilityStatus(Player player) {
+        UUID playerUuid = player.getUniqueId();
+        long remaining = abilityCooldown <= 0L ? 0L : Math.max(0L, getAbilityCooldownRemaining(playerUuid));
 
+        if (abilityCooldownBarEnabled) {
+            syncAbilityCooldownBar(player, remaining);
+        }
+
+        if (abilityActionBarEnabled) {
+            sendAbilityActionBar(player, remaining);
+        }
+
+        if (remaining > 0L) {
+            abilityPlayersOnCooldown.add(playerUuid);
+        } else if (abilityPlayersOnCooldown.remove(playerUuid)) {
+            playAbilityReadySound(player);
+        }
+    }
+
+    private void syncAbilityCooldownBar(Player player, long remaining) {
         UUID playerUuid = player.getUniqueId();
 
         abilityExperienceSnapshots.computeIfAbsent(playerUuid,
@@ -512,7 +569,6 @@ public class FightMode extends HotbarItem {
             return;
         }
 
-        long remaining = Math.max(0L, getAbilityCooldownRemaining(playerUuid));
         long totalCooldownMillis = abilityCooldown * 1000L;
         float progress = 1.0F - Math.min(remaining, totalCooldownMillis) / (float) totalCooldownMillis;
 
@@ -521,6 +577,29 @@ public class FightMode extends HotbarItem {
         if (abilityCooldownBarShowSeconds) {
             player.setLevel((int) Math.ceil(remaining / 1000.0D));
         }
+    }
+
+    private void sendAbilityActionBar(Player player, long remaining) {
+        long remainingSeconds = remaining <= 0L ? 0L : (long) Math.ceil(remaining / 1000.0D);
+        String status = remainingSeconds <= 0L
+                ? abilityActionBarReadyText
+                : abilityActionBarCooldownText.replace("<seconds>", String.valueOf(remainingSeconds));
+        String actionBar = abilityActionBarText.replace("<status>", status).replace("<seconds>",
+                String.valueOf(remainingSeconds));
+
+        player.sendActionBar(PlaceholderUtil.setPlaceholders(actionBar, player));
+    }
+
+    private void playAbilityReadySound(Player player) {
+        if (!abilityReadySoundEnabled || abilityReadySound == null) return;
+
+        player.playSound(player.getLocation(), abilityReadySound, abilityReadySoundVolume, abilityReadySoundPitch);
+    }
+
+    private void clearAbilityStatus(Player player) {
+        abilityPlayersOnCooldown.remove(player.getUniqueId());
+        player.sendActionBar(Component.empty());
+        clearAbilityCooldownBar(player);
     }
 
     private void clearAbilityCooldownBar(Player player) {

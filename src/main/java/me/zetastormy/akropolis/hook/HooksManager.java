@@ -64,6 +64,11 @@ public class HooksManager {
             plugin.getLogger().info("Hooked into NoteBlockAPI");
         }
 
+        if (Bukkit.getPluginManager().isPluginEnabled("FancyHolograms")) {
+            hooks.put("FANCY_HOLOGRAMS", null);
+            plugin.getLogger().info("Hooked into FancyHolograms");
+        }
+
         hooks.values().stream().filter(Objects::nonNull).forEach(pluginHook -> pluginHook.onEnable(plugin));
     }
 

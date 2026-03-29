@@ -20,6 +20,9 @@ dependencies:
     NoteBlockAPI:
       load: BEFORE
       required: false
+    FancyHolograms:
+      load: BEFORE
+      required: false
 
 permissions:
   akropolis.*:
@@ -48,6 +51,7 @@ permissions:
       akropolis.command.setlobby: true
       akropolis.command.vanish: true
       akropolis.command.songplayer: true
+      akropolis.command.leaderboards: true
   akropolis.bypass.*:
     description: Gives access to all bypass permissions
     children:
